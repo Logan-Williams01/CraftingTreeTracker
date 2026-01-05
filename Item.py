@@ -4,7 +4,7 @@
 
 class Item:
 
-    def __init__(self, id, name, sell_value):
+    def __init__(self, id, name, sell_value=0):
         self.id = id
         self.name = name
         self.sell_value = sell_value
