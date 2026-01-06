@@ -2,8 +2,8 @@ import sys
 from Item import Item
 from Recipe import Recipe
 from CraftingDatabase import CraftingDatabase
-from PySide6.QtWidgets import QComboBox, QFormLayout, QSpinBox, QLineEdit, QDialog, QMessageBox, QInputDialog, QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel, QTabWidget, QListWidget, QHBoxLayout
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QCompleter, QComboBox, QFormLayout, QSpinBox, QLineEdit, QDialog, QMessageBox, QInputDialog, QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel, QTabWidget, QListWidget, QHBoxLayout
+from PySide6.QtCore import Qt, Signal, QTimer, QEvent
 
 class RecipeDialog(QDialog):
     def __init__(self, items: dict[str, Item], recipe = None, parent=None, title="Add Recipe"):
@@ -172,10 +172,19 @@ class IngredientRow(QWidget):
         layout = QHBoxLayout(self)
 
         self.item_combo = QComboBox()
-        self.item_combo.addItem("- Select Item -", None)
+        self.item_combo.setEditable(True)
+        self.item_combo.setInsertPolicy(QComboBox.NoInsert)
+        self.item_combo.completer().setCompletionMode(QCompleter.PopupCompletion)
+        self.item_combo.completer().setFilterMode(Qt.MatchContains)
+        self.item_combo.addItem("Select item...", None)
+        self.line_edit = self.item_combo.lineEdit()
+        self.line_edit.installEventFilter(self)
 
-        for item_id, item in items.items():
+
+        for item_id, item in sorted(items.items(), key=lambda kv: kv[1].name.lower()):
             self.item_combo.addItem(item.name, item_id)
+
+
 
         self.qty_spin = QSpinBox()
         self.qty_spin.setMinimum(1)
@@ -189,9 +198,19 @@ class IngredientRow(QWidget):
         layout.addWidget(self.qty_spin)
         layout.addWidget(self.remove_btn)
 
+        QTimer.singleShot(0, lambda: self._focus_combo())
 
         self.remove_btn.clicked.connect(self.on_remove)
     
+    def _focus_combo(self):
+        self.item_combo.setFocus()
+        self.item_combo.lineEdit().selectAll()
+
+    def eventFilter(self, obj, event):
+        if obj == self.item_combo.lineEdit():
+            if event.type() ==QEvent.MouseButtonPress:
+                QTimer.singleShot(0, obj.selectAll)
+        return super().eventFilter(obj, event)
 
     def on_remove(self):
         self.remove_requested.emit(self)
