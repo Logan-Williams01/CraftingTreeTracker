@@ -4,8 +4,9 @@ from Recipe import Recipe
 from CraftingDatabase import CraftingDatabase
 from ItemDialog import ItemDialog
 from RecipeDialog import RecipeDialog, IngredientRow
-from PySide6.QtWidgets import QListWidgetItem, QDialog, QMessageBox, QInputDialog, QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel, QTabWidget, QListWidget, QHBoxLayout
+from PySide6.QtWidgets import QLineEdit, QFileDialog, QListWidgetItem, QDialog, QMessageBox, QInputDialog, QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel, QTabWidget, QListWidget, QHBoxLayout
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor, QBrush
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -19,6 +20,7 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
 
+        
         self.items_tab = QWidget()
         self.items_layout = QVBoxLayout()
         self.items_tab.setLayout(self.items_layout)
@@ -44,6 +46,8 @@ class MainWindow(QMainWindow):
         self.items_add.clicked.connect(self.add_item)
         self.items_edit.clicked.connect(self.edit_item)
         self.items_remove.clicked.connect(self.remove_item)
+        
+        
 
 
         self.recipes_tab = QWidget()
@@ -71,6 +75,39 @@ class MainWindow(QMainWindow):
         self.recipes_add.clicked.connect(self.add_recipe)
         self.recipes_edit.clicked.connect(self.edit_recipe)
         self.recipes_remove.clicked.connect(self.remove_recipe)
+
+
+        self.options_tab = QWidget()
+        self.options_layout = QVBoxLayout()
+        self.options_tab.setLayout(self.options_layout)
+        self.tabs.addTab(self.options_tab, "Options")
+
+        self.options_label = QLabel("Database Options")
+        self.options_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.options_layout.addWidget(self.options_label)
+
+
+        self.name_layout = QHBoxLayout()
+        self.name_layout.addWidget(QLabel("Database name"))
+
+        self.db_name_edit = QLineEdit()
+        self.db_name_edit.setText(self.db.name)
+        self.name_layout.addWidget(self.db_name_edit)
+
+        self.options_layout.addLayout(self.name_layout)
+
+        self.save_db_btn = QPushButton("Save database to file")
+        self.load_db_btn = QPushButton("Load database from file")
+        self.options_layout.addWidget(self.save_db_btn)
+        self.options_layout.addWidget(self.load_db_btn)
+
+
+
+        self.save_db_btn.clicked.connect(self.save_database)
+        self.load_db_btn.clicked.connect(self.load_database)
+        self.db_name_edit.textChanged.connect(self.on_db_name_changed)
+
+        self.options_layout.addStretch()
 
         self.label = QLabel("Hello, Crafting Database!")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -145,7 +182,6 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.warning(self,"Error", msg)
 
-
     def add_recipe(self):
         dialog = RecipeDialog(self.db.items, parent=self)
         if dialog.exec() == QDialog.Accepted:
@@ -153,10 +189,6 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Add Recipe", msg)
             self.refresh_recipes_list()
             
-
-        
-
-
     def edit_recipe(self):
         selected = self.recipes_list.currentRow()
         if selected < 0:
@@ -171,7 +203,6 @@ class MainWindow(QMainWindow):
             success, msg = self.db.edit_recipe(recipe, new_recipe)
             QMessageBox.information(self, "Edit Recipe", msg)
             self.refresh_recipes_list()
-
 
     def remove_recipe(self):
         selected = self.recipes_list.currentRow()
@@ -194,11 +225,88 @@ class MainWindow(QMainWindow):
             self.items_list.addItem(list_item)
     
     def refresh_recipes_list(self):
+    
         self.recipes_list.clear()
         for r in self.db.recipes:
-            list_item = QListWidgetItem(str(r))
-            list_item.setData(Qt.UserRole, r)
+            list_item = self.create_recipe_list_item(r)
             self.recipes_list.addItem(list_item)
+
+    def create_recipe_list_item(self, recipe):
+        
+        
+        # Format inputs and outputs
+        inputs_str = ", ".join(f"{qty}x {self.db.items[i].name}" for i, qty in recipe.inputs.items())
+        outputs_str = ", ".join(f"{qty}x {self.db.items[i].name}" for i, qty in recipe.outputs.items())
+
+        # Type and time
+        type_str = recipe.type
+        time_str = f"{recipe.time}s"
+
+        # Profit
+        success, profit = self.db.calc_profit(recipe)
+        profit_str = f"Profit: {profit}" if success else "Profit: N/A"
+
+        # Full display text
+        display_text = f"{inputs_str} → {outputs_str} | {type_str} | {time_str} | {profit_str}"
+        
+        # Create the item
+        list_item = QListWidgetItem(display_text)
+        list_item.setData(Qt.UserRole, recipe)
+
+        # Partial coloring using QBrush — approximate, applies to whole item for now
+        # Green outputs, red inputs, black for rest (we can only color the whole item in QListWidget without using delegates)
+        if success:
+            if profit > 0:
+                list_item.setForeground(QBrush(QColor("green")))
+            elif profit < 0:
+                list_item.setForeground(QBrush(QColor("red")))
+            else:
+                list_item.setForeground(QBrush(QColor("black")))
+
+        return list_item
+
+    def save_database(self):
+        default = self.db.name or "crafting_database"
+        filename, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Database",
+            f"{default}.json",
+            "JSON Files (*.json)"
+        )
+        
+        if not filename:
+            return
+    
+        try:
+            self.db.save(filename)
+            QMessageBox.information(self, "Save Database", f"Database saved as '{filename}'")
+        except Exception as e:
+            QMessageBox.critical(self, "Save Error", str(e))
+    
+    def load_database(self):
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Load Database,",
+            "",
+            "JSON Files (*.json)"
+        )
+
+        if not filename:
+            return
+        
+        try:
+            self.db = CraftingDatabase.load(filename)
+            self.db_name_edit.setText(self.db.name)
+            QMessageBox.information(self, "Load Database", f"Database loaded from '{filename}'")
+            self.refresh_items_list()
+            self.refresh_recipes_list()
+        except FileNotFoundError:
+            QMessageBox.warning(self, "Load Error", f"File '{filename}' not found")
+        except Exception as e:
+            QMessageBox.critical(self, "Load Error", str(e))
+
+    def on_db_name_changed(self, text):
+        self.db.name = text.strip()
 
 app = QApplication(sys.argv)
 
