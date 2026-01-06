@@ -7,7 +7,7 @@ import os
 def test_crafting_database():
     # --- Create items ---
     iron = Item("iron", "Iron", 10)
-    ingot = Item("iron_ingot", "Iron Ingot", 20)
+    ingot = Item("iron_ingot", "Iron Ingot", 40)
     copper = Item("copper", "Copper", 15)
 
     # --- Create recipes ---
@@ -36,6 +36,40 @@ def test_crafting_database():
     recipe_bad = Recipe({"gold": 2}, {"gold_ingot": 1})
     success, msg = db.add_recipe(recipe_bad)
     assert not success
+
+    # Test profit calculations
+    success, value = db.sell_value("iron")
+    assert success
+    assert value == 10
+
+    success, value = db.sell_value("gold")
+    assert not success
+    assert value == -1
+
+    success, profit = db.calc_profit(recipe1)
+    assert success
+    assert profit == 40
+
+    success, profit = db.calc_profit(recipe2)
+    assert not success
+    assert profit == -1
+
+    # Test Recipe lookup by consumption/production
+    consumed = db.recipes_that_consume("iron")
+    assert consumed
+    print(f"Consumed: {consumed}")
+
+    produced = db.recipes_that_produce("iron_ingot")
+    assert produced
+    print(f"Produced: {produced}")
+
+    consumed = db.recipes_that_consume("gold")
+    assert not consumed
+    print(f"Consumed: {consumed}")
+
+    produced = db.recipes_that_produce("gold_ingot")
+    assert not produced
+    print(f"Produced: {produced}")
 
     # --- to_dict and from_dict ---
     data = db.to_dict()
