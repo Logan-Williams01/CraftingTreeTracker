@@ -220,9 +220,11 @@ class MainWindow(QMainWindow):
     def refresh_items_list(self):
         self.items_list.clear()
         for i in self.db.items.values():
-            list_item = QListWidgetItem(f"{i.name} ({i.id})")
+            list_item = QListWidgetItem(f"{i.name} (${i.sell_value})")
             list_item.setData(Qt.UserRole, i.id)
             self.items_list.addItem(list_item)
+        self.items_list.sortItems()
+        
     
     def refresh_recipes_list(self):
     

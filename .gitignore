@@ -1,2 +1,8 @@
 Sample_Empty_Database.json
 Sample_Minecraft_Database.json
+Arc_Raiders.json
+build/
+dist/
+*.spec
+__pycache__/
+*.pyc
