@@ -69,6 +69,97 @@ class CraftingDatabase:
         self.recipes.append(recipe)
         return True, "Recipe successfully added"
     
+    #Removes given Item from items, provided it exists
+    def remove_item(self, item_id:str, cascade=False):
+        if item_id not in self.items:
+            return False, f"'{item_id}' not found"
+        
+        recipes_that_include = (self.recipes_that_consume(item_id) + self.recipes_that_produce(item_id))
+
+        if recipes_that_include:
+            if cascade:
+                for r in recipes_that_include:
+                    self.remove_recipe(r)
+                del self.items[item_id]
+                return True, "Item and all included Recipes removed"
+            return False, "Item must not be in recipes, use cascade=true to force delete Item and included Recipes"
+        
+        del self.items[item_id]
+        return True, "Item removed. No included Recipes found."
+
+    #Removes one instance of recipe from the database, provided it exists.
+    def remove_recipe(self, recipe:Recipe):
+        if recipe in self.recipes:
+            self.recipes.remove(recipe)
+            return True, "Recipe deleted"
+        return False, "Recipe not found"
+
+    #Updates an Item's name and/or sell_value, provided the item_id exists
+    #Item id CANNOT be changed, only removed
+    def edit_item(self, item_id: str, new_name=None, new_sell_value=None):
+        if item_id not in self.items:
+            return False, "Item not found"
+        
+        item = self.items[item_id]
+        if new_name is not None:
+            item.name = new_name
+        if new_sell_value is not None:
+            item.sell_value = new_sell_value
+        
+        return True, "Item updated"
+
+    #Updates a Recipe by removing and readding it, provided it exists
+    def edit_recipe(self, old_recipe: Recipe, new_recipe: Recipe):
+        if old_recipe not in self.recipes:
+            return False, "Recipe not found"
+        self.recipes.remove(old_recipe)
+        self.recipes.append(new_recipe)
+        return True, "Recipe updated"
+
+    #Returns an item's sell_value, provided it's in the database
+    def sell_value(self, item_id:str):
+        if item_id in self.items:
+            return True, self.items[item_id].sell_value
+        return False, -1
+
+    #Returns the "profit" from selling a recipe's outputs vs it's inputs. 
+    #Positive values means the output is worth more to sell 
+    def calc_profit(self, recipe:Recipe):
+
+        if recipe not in self.recipes:
+            return False, -1
+
+        input_cost = 0
+        output_cost = 0
+
+
+        for i, q in recipe.inputs.items():
+            input_cost += self.items[i].sell_value * q
+        
+        for i, q in recipe.outputs.items():
+            output_cost += self.items[i].sell_value * q
+        
+        return True, (output_cost - input_cost)
+
+    #Returns recipes which have item_id in their inputs
+    def recipes_that_consume(self, item_id:str):
+        output = []
+        for r in self.recipes:
+            if item_id in r.inputs:
+                output.append(r)
+        return output
+
+    #Returns recipes which have item_id in their inputs
+    def recipes_that_produce(self, item_id:str):
+        output = []
+        for r in self.recipes:
+            if item_id in r.outputs:
+                output.append(r)
+        return output
+
+
+
+
     #Must convert self.items from a dictionary of item_id: Item(object) to item_id: Item(dictionary) using item.to_dict()
     #Must convert self.recipes from a list of Recipe(object) to a list of Recipe(dictionary) using recipe.to_dict()
     #Finally creates a dictionary of "name": name, "items": dictionary(item_id:Item(dictionary)), "recipes": list(Recipe(dictionary))
@@ -95,7 +186,6 @@ class CraftingDatabase:
         with open(filename,"w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=4)
 
-
     #Unwraps the nested dictionary and list mess back into objects, using Item's and Recipe's from_dict() methods
     @classmethod
     def from_dict(cls, data):
@@ -118,3 +208,5 @@ class CraftingDatabase:
         with open(filename, "r", encoding="utf-8") as f:
             data = json.load(f)
         return cls.from_dict(data)
+
+
