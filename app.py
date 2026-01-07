@@ -4,7 +4,7 @@ from Recipe import Recipe
 from CraftingDatabase import CraftingDatabase
 from ItemDialog import ItemDialog
 from RecipeDialog import RecipeDialog, IngredientRow
-from PySide6.QtWidgets import QLineEdit, QFileDialog, QListWidgetItem, QDialog, QMessageBox, QInputDialog, QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel, QTabWidget, QListWidget, QHBoxLayout
+from PySide6.QtWidgets import QComboBox, QLineEdit, QFileDialog, QListWidgetItem, QDialog, QMessageBox, QInputDialog, QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel, QTabWidget, QListWidget, QHBoxLayout
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QBrush
 
@@ -60,6 +60,23 @@ class MainWindow(QMainWindow):
         self.recipes_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.recipes_layout.addWidget(self.recipes_label)
 
+
+        self.recipe_sort_layout = QHBoxLayout()
+        self.recipe_sort_label = QLabel("Sort by:")
+        self.recipe_sort_combo = QComboBox()
+        self.recipe_sort_combo.addItems(["Profit", "Time", "Type", "Inputs","Outputs"])
+        self.recipe_sort_dir = QComboBox()
+        self.recipe_sort_dir.addItems(["Descending", "Ascending"])
+        self.recipe_sort_layout.addWidget(self.recipe_sort_label)
+        self.recipe_sort_layout.addWidget(self.recipe_sort_combo)
+        self.recipe_sort_layout.addWidget(self.recipe_sort_dir)
+        self.recipe_sort_layout.addStretch()
+        self.recipes_layout.addLayout(self.recipe_sort_layout)
+
+        self.recipe_sort_combo.currentIndexChanged.connect(self.refresh_recipes_list)
+        self.recipe_sort_dir.currentIndexChanged.connect(self.refresh_recipes_list)
+
+
         self.recipes_list = QListWidget()
         self.recipes_layout.addWidget(self.recipes_list)
 
@@ -113,12 +130,16 @@ class MainWindow(QMainWindow):
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         #self.setCentralWidget(label)
     
+    def build_items_tab():
+        pass
+
+
     def add_item(self):
         dialog = ItemDialog(parent=self)
         if dialog.exec():
             name, item_id, sell_value = dialog.get_data()
             success, msg = self.db.add_item(Item(item_id, name, sell_value))
-            print(msg)
+            QMessageBox.information(self, "Add Item", msg)
             if success:
                 self.refresh_items_list()
 
@@ -229,16 +250,21 @@ class MainWindow(QMainWindow):
     def refresh_recipes_list(self):
     
         self.recipes_list.clear()
-        for r in self.db.recipes:
-            list_item = self.create_recipe_list_item(r)
-            self.recipes_list.addItem(list_item)
+        for r in self.get_sorted_recipes():
+            text = str(r)
+            profit = self.db.calc_profit(r)[1]
+
+            item = self.create_recipe_list_item(r)
+            item.setData(Qt.UserRole, r)
+
+            self.recipes_list.addItem(item)
 
     def create_recipe_list_item(self, recipe):
         
         
         # Format inputs and outputs
-        inputs_str = ", ".join(f"{qty}x {self.db.items[i].name}" for i, qty in recipe.inputs.items())
-        outputs_str = ", ".join(f"{qty}x {self.db.items[i].name}" for i, qty in recipe.outputs.items())
+        inputs_str = ", ".join(f"{qty}x {self.db.items[i].name}" for i, qty in sorted(recipe.inputs.items()))
+        outputs_str = ", ".join(f"{qty}x {self.db.items[i].name}" for i, qty in sorted(recipe.outputs.items()))
 
         # Type and time
         type_str = recipe.type
@@ -249,8 +275,8 @@ class MainWindow(QMainWindow):
         profit_str = f"Profit: {profit}" if success else "Profit: N/A"
 
         # Full display text
-        display_text = f"{inputs_str} → {outputs_str} | {type_str} | {time_str} | {profit_str}"
-        
+        display_text = f"{type_str}: {inputs_str} → {outputs_str} | {time_str} | {profit_str}"
+       
         # Create the item
         list_item = QListWidgetItem(display_text)
         list_item.setData(Qt.UserRole, recipe)
@@ -266,6 +292,25 @@ class MainWindow(QMainWindow):
                 list_item.setForeground(QBrush(QColor("black")))
 
         return list_item
+
+    def get_sorted_recipes(self):
+        recipes = list(self.db.recipes)
+
+        key = self.recipe_sort_combo.currentText()
+        descending = self.recipe_sort_dir.currentText() == "Descending"
+
+        if key == "Profit":
+            recipes.sort(key=lambda r: self.db.calc_profit(r), reverse=descending)
+        if key == "Time":
+            recipes.sort(key=lambda r: r.time, reverse=descending)
+        if key == "Type":
+            recipes.sort(key=lambda r: r.time, reverse=descending)
+        if key == "Inputs":
+            recipes.sort(key=lambda r: ", ".join(self.db.items[i].name for i in sorted(r.inputs)), reverse=descending)
+        if key == "Outputs":
+            recipes.sort(key=lambda r: ", ".join(self.db.items[i].name for i in sorted(r.outputs)), reverse=descending)
+
+        return recipes
 
     def save_database(self):
         default = self.db.name or "crafting_database"
