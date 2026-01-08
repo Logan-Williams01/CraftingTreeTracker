@@ -4,7 +4,7 @@ from Recipe import Recipe
 from CraftingDatabase import CraftingDatabase
 from ItemDialog import ItemDialog
 from RecipeDialog import RecipeDialog, IngredientRow
-from PySide6.QtWidgets import QComboBox, QLineEdit, QFileDialog, QListWidgetItem, QDialog, QMessageBox, QInputDialog, QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel, QTabWidget, QListWidget, QHBoxLayout
+from PySide6.QtWidgets import QSizePolicy, QComboBox, QLineEdit, QFileDialog, QListWidgetItem, QDialog, QMessageBox, QInputDialog, QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel, QTabWidget, QListWidget, QHBoxLayout
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QBrush
 
@@ -50,6 +50,8 @@ class MainWindow(QMainWindow):
         self.items_layout.addLayout(self.items_buttons)
 
     def build_recipes_tab(self):
+       
+        # Setup with tab, label, and layout
         self.recipes_tab = QWidget()
         self.recipes_layout = QVBoxLayout()
         self.recipes_tab.setLayout(self.recipes_layout)
@@ -60,25 +62,47 @@ class MainWindow(QMainWindow):
         self.recipes_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.recipes_layout.addWidget(self.recipes_label)
 
-
+        # Sorting line, with drop-down boxes for type and order
         self.recipe_sort_layout = QHBoxLayout()
         self.recipe_sort_label = QLabel("Sort by:")
         self.recipe_sort_combo = QComboBox()
         self.recipe_sort_combo.addItems(["Profit", "Time", "Type", "Inputs","Outputs"])
         self.recipe_sort_dir = QComboBox()
-        self.recipe_sort_dir.addItems(["Descending", "Ascending"])
+        self.recipe_sort_dir.addItems(["Ascending", "Descending"])
         self.recipe_sort_layout.addWidget(self.recipe_sort_label)
         self.recipe_sort_layout.addWidget(self.recipe_sort_combo)
         self.recipe_sort_layout.addWidget(self.recipe_sort_dir)
         self.recipe_sort_layout.addStretch()
         self.recipes_layout.addLayout(self.recipe_sort_layout)
 
+        # Filtering line
+        self.recipe_filter_layout = QHBoxLayout()
+        self.recipe_filter_label = QLabel("Filter by:")
         
+        self.recipe_filter_item = IngredientRow(self.db.items, parent=self)
+        self.recipe_filter_item.qty_spin.deleteLater()
+        self.recipe_filter_item.remove_btn.deleteLater()
+        self.recipe_filter_item.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
 
+        self.recipe_filter_type = QComboBox()
+        self.recipe_filter_type.addItems(["Both", "Inputs", "Outputs"])
+        self.recipe_filter_clear_btn = QPushButton("Clear")
+        
+        self.recipe_filter_layout.addWidget(self.recipe_filter_label)
+        self.recipe_filter_layout.addWidget(self.recipe_filter_item)
+        self.recipe_filter_layout.addWidget(self.recipe_filter_type)
+        self.recipe_filter_layout.addWidget(self.recipe_filter_clear_btn)
+
+
+        
+        self.recipes_layout.addLayout(self.recipe_filter_layout)
+
+        # Main Recipe list
         self.recipes_list = QListWidget()
         self.recipes_layout.addWidget(self.recipes_list)
 
+        # Buttons
         self.recipes_buttons = QHBoxLayout()
         self.recipes_add = QPushButton("Add")
         self.recipes_edit = QPushButton("Edit")
@@ -127,6 +151,11 @@ class MainWindow(QMainWindow):
 
         self.recipe_sort_combo.currentIndexChanged.connect(self.refresh_recipes_list)
         self.recipe_sort_dir.currentIndexChanged.connect(self.refresh_recipes_list)
+
+
+        self.recipe_filter_item.item_combo.currentIndexChanged.connect(self.refresh_recipes_list)
+        self.recipe_filter_type.currentIndexChanged.connect(self.refresh_recipes_list)
+        self.recipe_filter_clear_btn.clicked.connect(self.clear_recipe_filter)
    
         self.save_db_btn.clicked.connect(self.save_database)
         self.load_db_btn.clicked.connect(self.load_database)
@@ -237,18 +266,34 @@ class MainWindow(QMainWindow):
             list_item.setData(Qt.UserRole, i.id)
             self.items_list.addItem(list_item)
         self.items_list.sortItems()
+
+        self.recipe_filter_item.refresh_items(self.db.items)
         
     def refresh_recipes_list(self):
     
         self.recipes_list.clear()
-        for r in self.get_sorted_recipes():
-            text = str(r)
-            profit = self.db.calc_profit(r)[1]
 
+        item_filter = self.recipe_filter_item.item_combo
+        type_filter = self.recipe_filter_type
+        for r in self.get_sorted_recipes():
+           
             item = self.create_recipe_list_item(r)
             item.setData(Qt.UserRole, r)
 
-            self.recipes_list.addItem(item)
+            #print(f"Item: {item_filter} From {type_filter}")
+
+            if not item_filter.currentData():
+                self.recipes_list.addItem(item)
+            elif type_filter.currentText() == "Both":
+                if r.consumes(item_filter.currentData()) or r.produces(item_filter.currentData()):
+                    self.recipes_list.addItem(item)
+            elif type_filter.currentText() == "Inputs":
+                if r.consumes(item_filter.currentData()):
+                    self.recipes_list.addItem(item)
+            elif type_filter.currentText() == "Outputs":
+                if r.produces(item_filter.currentData()):
+                    self.recipes_list.addItem(item)
+                
 
     def create_recipe_list_item(self, recipe):
         
@@ -302,6 +347,11 @@ class MainWindow(QMainWindow):
             recipes.sort(key=lambda r: ", ".join(self.db.items[i].name for i in sorted(r.outputs)), reverse=descending)
 
         return recipes
+
+    def clear_recipe_filter(self):
+        self.recipe_filter_item.item_combo.setCurrentIndex(0)
+        self.recipe_filter_type.setCurrentIndex(0)
+
 
     def save_database(self):
         default = self.db.name or "crafting_database"
