@@ -180,6 +180,7 @@ class IngredientRow(QWidget):
         self.line_edit = self.item_combo.lineEdit()
         self.line_edit.installEventFilter(self)
 
+        self.item_combo.setMinimumHeight(self.item_combo.fontMetrics().height() + 7)
 
         for item_id, item in sorted(items.items(), key=lambda kv: kv[1].name.lower()):
             self.item_combo.addItem(item.name, item_id)
