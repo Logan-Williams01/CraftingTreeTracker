@@ -37,6 +37,20 @@ class MainWindow(QMainWindow):
         self.items_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.items_layout.addWidget(self.items_label)
 
+        self.item_sort_layout = QHBoxLayout()
+        self.item_sort_label = QLabel("Sort by:")
+        self.item_sort_combo = QComboBox()
+        self.item_sort_combo.addItems(["Name", "Value"])
+        self.item_sort_dir = QComboBox()
+        self.item_sort_dir.addItems(["Ascending", "Descending"])
+        self.item_sort_layout.addWidget(self.item_sort_label)
+        self.item_sort_layout.addWidget(self.item_sort_combo)
+        self.item_sort_layout.addWidget(self.item_sort_dir)
+        
+        self.item_sort_combo.setMinimumWidth(70)
+        self.item_sort_layout.addStretch()
+        self.items_layout.addLayout(self.item_sort_layout)
+
         self.items_list = QListWidget()
         self.items_layout.addWidget(self.items_list)
 
@@ -144,6 +158,9 @@ class MainWindow(QMainWindow):
         self.items_add.clicked.connect(self.add_item)
         self.items_edit.clicked.connect(self.edit_item)
         self.items_remove.clicked.connect(self.remove_item)
+
+        self.item_sort_combo.currentIndexChanged.connect(self.refresh_items_list)
+        self.item_sort_dir.currentIndexChanged.connect(self.refresh_items_list)
 
         self.recipes_add.clicked.connect(self.add_recipe)
         self.recipes_edit.clicked.connect(self.edit_recipe)
@@ -261,14 +278,26 @@ class MainWindow(QMainWindow):
 
     def refresh_items_list(self):
         self.items_list.clear()
-        for i in self.db.items.values():
-            list_item = QListWidgetItem(f"{i.name} (${i.sell_value})")
-            list_item.setData(Qt.UserRole, i.id)
+
+        for i in self.get_sorted_items():
+            list_item = QListWidgetItem(f"{i[1].name} (${i[1].sell_value})")
+            list_item.setData(Qt.UserRole, i[1].id)
             self.items_list.addItem(list_item)
-        self.items_list.sortItems()
+        
 
         self.recipe_filter_item.refresh_items(self.db.items)
         
+    def get_sorted_items(self):
+        items = self.db.items
+        descending = self.item_sort_dir.currentText() == "Descending"
+
+        if self.item_sort_combo.currentText() == "Name":
+            sorted_items = sorted(items.items(), key=lambda item: item[1].name.lower(), reverse=descending)
+        elif self.item_sort_combo.currentText() == "Value":
+            sorted_items = sorted(items.items(), key=lambda item: item[1].sell_value, reverse=descending)
+        
+        return sorted_items
+
     def refresh_recipes_list(self):
     
         self.recipes_list.clear()
