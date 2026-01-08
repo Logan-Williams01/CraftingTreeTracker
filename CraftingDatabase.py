@@ -41,8 +41,6 @@ class CraftingDatabase:
             if not isinstance(r, Recipe):
                 raise TypeError(f"recipes must contain Recipe objects, got '{type(r)}'")
             
-        
-        
     #Does not allow adding duplicate items
     #Returns a boolean success value and related message
     def add_item(self, item:Item):
@@ -124,7 +122,7 @@ class CraftingDatabase:
 
     #Returns the "profit" from selling a recipe's outputs vs it's inputs. 
     #Positive values means the output is worth more to sell 
-    def calc_profit(self, recipe:Recipe):
+    def calc_profit(self, recipe:Recipe) -> tuple [bool, int]:
 
         if recipe not in self.recipes:
             return False, -1
@@ -156,9 +154,6 @@ class CraftingDatabase:
             if item_id in r.outputs:
                 output.append(r)
         return output
-
-
-
 
     #Must convert self.items from a dictionary of item_id: Item(object) to item_id: Item(dictionary) using item.to_dict()
     #Must convert self.recipes from a list of Recipe(object) to a list of Recipe(dictionary) using recipe.to_dict()
