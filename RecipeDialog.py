@@ -66,14 +66,14 @@ class RecipeDialog(QDialog):
 
 
     def add_input_row(self):
-        row = IngredientRow(self.items)
+        row = IngredientRow(self.items, parent=self)
         row.remove_requested.connect(self.remove_input_row)
         self.inputs_layout.addWidget(row)
         self.input_rows.append(row)
         return row
     
     def add_output_row(self):
-        row = IngredientRow(self.items)
+        row = IngredientRow(self.items, parent=self)
         row.remove_requested.connect(self.remove_output_row)
         self.outputs_layout.addWidget(row)
         self.output_rows.append(row)
@@ -198,10 +198,20 @@ class IngredientRow(QWidget):
         layout.addWidget(self.qty_spin)
         layout.addWidget(self.remove_btn)
 
-        QTimer.singleShot(0, lambda: self._focus_combo())
+        if type(parent) == RecipeDialog:
+            QTimer.singleShot(0, lambda: self._focus_combo())
 
         self.remove_btn.clicked.connect(self.on_remove)
     
+    def refresh_items(self, items:dict[str, Item]):
+        self.items = items
+        self.item_combo.clear()
+        self.item_combo.addItem("Select item...", None)
+
+        for item_id, item in sorted(items.items(), key=lambda kv: kv[1].name.lower()):
+            self.item_combo.addItem(item.name, item_id)
+
+
     def _focus_combo(self):
         self.item_combo.setFocus()
         self.item_combo.lineEdit().selectAll()
