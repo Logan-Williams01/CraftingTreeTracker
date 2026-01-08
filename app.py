@@ -20,7 +20,13 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
 
+        self.build_items_tab()
+        self.build_recipes_tab()
+        self.build_options_tab()
+        self.wire_signals()
         
+        
+    def build_items_tab(self):
         self.items_tab = QWidget()
         self.items_layout = QVBoxLayout()
         self.items_tab.setLayout(self.items_layout)
@@ -43,13 +49,7 @@ class MainWindow(QMainWindow):
         self.items_buttons.addWidget(self.items_remove)
         self.items_layout.addLayout(self.items_buttons)
 
-        self.items_add.clicked.connect(self.add_item)
-        self.items_edit.clicked.connect(self.edit_item)
-        self.items_remove.clicked.connect(self.remove_item)
-        
-        
-
-
+    def build_recipes_tab(self):
         self.recipes_tab = QWidget()
         self.recipes_layout = QVBoxLayout()
         self.recipes_tab.setLayout(self.recipes_layout)
@@ -89,10 +89,7 @@ class MainWindow(QMainWindow):
         self.recipes_buttons.addWidget(self.recipes_remove)
         self.recipes_layout.addLayout(self.recipes_buttons)
 
-        self.recipes_add.clicked.connect(self.add_recipe)
-        self.recipes_edit.clicked.connect(self.edit_recipe)
-        self.recipes_remove.clicked.connect(self.remove_recipe)
-
+    def build_options_tab(self):
 
         self.options_tab = QWidget()
         self.options_layout = QVBoxLayout()
@@ -102,7 +99,6 @@ class MainWindow(QMainWindow):
         self.options_label = QLabel("Database Options")
         self.options_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.options_layout.addWidget(self.options_label)
-
 
         self.name_layout = QHBoxLayout()
         self.name_layout.addWidget(QLabel("Database name"))
@@ -118,21 +114,21 @@ class MainWindow(QMainWindow):
         self.options_layout.addWidget(self.save_db_btn)
         self.options_layout.addWidget(self.load_db_btn)
 
+        self.options_layout.addStretch()
 
+    def wire_signals(self):
+        
+        self.items_add.clicked.connect(self.add_item)
+        self.items_edit.clicked.connect(self.edit_item)
+        self.items_remove.clicked.connect(self.remove_item)
 
+        self.recipes_add.clicked.connect(self.add_recipe)
+        self.recipes_edit.clicked.connect(self.edit_recipe)
+        self.recipes_remove.clicked.connect(self.remove_recipe)
+   
         self.save_db_btn.clicked.connect(self.save_database)
         self.load_db_btn.clicked.connect(self.load_database)
         self.db_name_edit.textChanged.connect(self.on_db_name_changed)
-
-        self.options_layout.addStretch()
-
-        self.label = QLabel("Hello, Crafting Database!")
-        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        #self.setCentralWidget(label)
-    
-    def build_items_tab():
-        pass
-
 
     def add_item(self):
         dialog = ItemDialog(parent=self)
@@ -174,14 +170,8 @@ class MainWindow(QMainWindow):
             print("No item selected")
             return
         
-        
-        # Get the item ID from the list text
-        list_text = self.items_list.item(selected).text()
-        item_id = list_text.split("(")[1].split(")")[0]  # crude parsing
-        item = self.db.items[item_id]
 
-
-        success, msg = self.db.remove_item(item_id, cascade=False)
+        success, msg = self.db.remove_item(self.items_list.item(selected).data(Qt.UserRole))
 
         if not success:
             reply = QMessageBox.question(
@@ -192,7 +182,7 @@ class MainWindow(QMainWindow):
             )
         
             if reply == QMessageBox.Yes:
-                success, msg = self.db.remove_item(item_id, cascade=True)
+                success, msg = self.db.remove_item(self.items_list.item(selected).data(Qt.UserRole), cascade=True)
             else:
                 return
             
@@ -246,7 +236,6 @@ class MainWindow(QMainWindow):
             self.items_list.addItem(list_item)
         self.items_list.sortItems()
         
-    
     def refresh_recipes_list(self):
     
         self.recipes_list.clear()
