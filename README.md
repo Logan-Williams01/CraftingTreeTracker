@@ -6,7 +6,6 @@ CraftingTreeTracker aims to replace your side monitor's spreadsheet with a dedic
 FEATURES:
 Create Items with a name, image(optional) and a "sell value"(optional, useful for games with economies)
 Create Recipes using Items, specifying quantities, crafting types(craft, smelting, etc), times(for non instant crafts)
-(NOT IMPLEMENTED) Calculate profits for Recipes (is it better to sell as base materials, or crafting them together?)
-(NOT IMPLEMENTED) Calculate total time needed to craft a given Recipe (not in parallel)
-(NOT IMPLEMENTED) Simple GUI for navigating and visualizing your tree
+Calculate profits for Recipes (is it better to sell as base materials, or crafting them together?)
+Simple GUI for navigating and visualizing your tree (no graph view)
 Easy saving, loading, and sharing via JSON files
