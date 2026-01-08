@@ -73,8 +73,7 @@ class MainWindow(QMainWindow):
         self.recipe_sort_layout.addStretch()
         self.recipes_layout.addLayout(self.recipe_sort_layout)
 
-        self.recipe_sort_combo.currentIndexChanged.connect(self.refresh_recipes_list)
-        self.recipe_sort_dir.currentIndexChanged.connect(self.refresh_recipes_list)
+        
 
 
         self.recipes_list = QListWidget()
@@ -125,6 +124,9 @@ class MainWindow(QMainWindow):
         self.recipes_add.clicked.connect(self.add_recipe)
         self.recipes_edit.clicked.connect(self.edit_recipe)
         self.recipes_remove.clicked.connect(self.remove_recipe)
+
+        self.recipe_sort_combo.currentIndexChanged.connect(self.refresh_recipes_list)
+        self.recipe_sort_dir.currentIndexChanged.connect(self.refresh_recipes_list)
    
         self.save_db_btn.clicked.connect(self.save_database)
         self.load_db_btn.clicked.connect(self.load_database)
@@ -293,7 +295,7 @@ class MainWindow(QMainWindow):
         if key == "Time":
             recipes.sort(key=lambda r: r.time, reverse=descending)
         if key == "Type":
-            recipes.sort(key=lambda r: r.time, reverse=descending)
+            recipes.sort(key=lambda r: r.type, reverse=descending)
         if key == "Inputs":
             recipes.sort(key=lambda r: ", ".join(self.db.items[i].name for i in sorted(r.inputs)), reverse=descending)
         if key == "Outputs":
