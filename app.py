@@ -292,7 +292,7 @@ class MainWindow(QMainWindow):
         # Since Recipes rely on their inputs/outputs actually existing, only Items not used in Recipes may be removed
 
         # Attempt to remove the item without cascading (removing related Recipes)
-        success, msg = self.db.remove_item(self.items_list.item(selected).data(Qt.UserRole), cascade=False)
+        success, msg = self.db.remove_item(self.items_list.item(selected).data(Qt.UserRole).id, cascade=False)
 
         # Item exists in at least one recipe
         if not success:
@@ -307,7 +307,7 @@ class MainWindow(QMainWindow):
         
             # User selected yes, remove all Item's recipes and the Item itself
             if reply == QMessageBox.Yes:
-                success, msg = self.db.remove_item(self.items_list.item(selected).data(Qt.UserRole), cascade=True)
+                success, msg = self.db.remove_item(self.items_list.item(selected).data(Qt.UserRole).id, cascade=True)
             else:
                 return
             
