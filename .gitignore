@@ -1,8 +1,9 @@
-Sample_Empty_Database.json
-Sample_Minecraft_Database.json
-Arc_Raiders.json
+*.json
 build/
 dist/
 *.spec
 __pycache__/
 *.pyc
+loot_table_converter.py
+Loot_1.csv
+Loot_1_with_linebreaks.csv
