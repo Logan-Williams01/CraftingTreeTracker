@@ -199,6 +199,9 @@ class MainWindow(QMainWindow):
         self.item_sort_combo.currentIndexChanged.connect(self.refresh_items_list)
         self.item_sort_dir.currentIndexChanged.connect(self.refresh_items_list)
 
+        # Double click an Item to instantly see it's Recipes
+        self.items_list.itemDoubleClicked.connect(self.go_to_recipe)
+
         # Item add/edit/remove buttons
         self.items_add.clicked.connect(self.add_item)
         self.items_edit.clicked.connect(self.edit_item)
@@ -318,6 +321,19 @@ class MainWindow(QMainWindow):
             self.refresh_recipes_list()
         else:
             QMessageBox.warning(self,"Error", msg)
+
+    def go_to_recipe(self, item_widget):
+        
+        # Loop through items in recipe tab's items an look for matching data, then set to current index
+        for i in range(self.recipe_filter_item.item_combo.count()):
+           
+           if item_widget.data(Qt.UserRole).id == self.recipe_filter_item.item_combo.itemData(i):
+               self.recipe_filter_item.item_combo.setCurrentIndex(i)
+               break
+            
+        
+        
+        self.tabs.setCurrentWidget(self.recipes_tab)
 
     def add_recipe(self):
 
