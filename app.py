@@ -46,6 +46,16 @@ class MainWindow(QMainWindow):
         self.item_sort_layout = QHBoxLayout()
         self.items_layout.addLayout(self.item_sort_layout)
 
+        # Filtering line with text field and clear button
+        self.items_filter_layout = QHBoxLayout()
+        self.items_layout.addLayout(self.items_filter_layout)
+        self.items_filter_label = QLabel("Filter by name:")
+        self.items_filter_layout.addWidget(self.items_filter_label) 
+        self.items_filter_text = QLineEdit()
+        self.items_filter_layout.addWidget(self.items_filter_text)  
+        self.items_filter_clear_btn = QPushButton("Clear")
+        self.items_filter_layout.addWidget(self.items_filter_clear_btn)
+
         # Label
         self.item_sort_label = QLabel("Sort by:")
         self.item_sort_layout.addWidget(self.item_sort_label)
@@ -199,6 +209,10 @@ class MainWindow(QMainWindow):
         self.item_sort_combo.currentIndexChanged.connect(self.refresh_items_list)
         self.item_sort_dir.currentIndexChanged.connect(self.refresh_items_list)
 
+        # Item filter text auto-refresh
+        self.items_filter_text.textChanged.connect(self.refresh_items_list)
+        self.items_filter_clear_btn.clicked.connect(lambda: self.items_filter_text.setText(""))
+
         # Double click an Item to instantly see it's Recipes
         self.items_list.itemDoubleClicked.connect(self.go_to_recipe)
 
@@ -331,8 +345,7 @@ class MainWindow(QMainWindow):
                self.recipe_filter_item.item_combo.setCurrentIndex(i)
                break
             
-        
-        
+        # Switch to recipe tab
         self.tabs.setCurrentWidget(self.recipes_tab)
 
     def add_recipe(self):
@@ -398,9 +411,15 @@ class MainWindow(QMainWindow):
         # Clear the items list
         self.items_list.clear()
 
+        filter_text = self.items_filter_text.text().lower().strip()
+
         # Gets current items in list of tuples
         for i in self.get_sorted_items():
 
+            # If filter text is non-empty, skip items that don't match
+            if filter_text and filter_text not in i[1].name.lower():
+                continue
+            
             # Format item display name
             list_item = QListWidgetItem(f"{i[1].name} (${i[1].sell_value})")
 
