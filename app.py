@@ -4,9 +4,9 @@ from Recipe import Recipe
 from CraftingDatabase import CraftingDatabase
 from ItemDialog import ItemDialog
 from RecipeDialog import RecipeDialog, IngredientRow
-from PySide6.QtWidgets import QSizePolicy, QComboBox, QLineEdit, QFileDialog, QListWidgetItem, QDialog, QMessageBox, QInputDialog, QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel, QTabWidget, QListWidget, QHBoxLayout
+from PySide6.QtWidgets import QSpinBox, QSizePolicy, QComboBox, QLineEdit, QFileDialog, QListWidgetItem, QDialog, QMessageBox, QInputDialog, QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel, QTabWidget, QListWidget, QHBoxLayout
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QBrush
+from PySide6.QtGui import QColor, QBrush, QFont
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -200,6 +200,21 @@ class MainWindow(QMainWindow):
         self.options_layout.addWidget(self.save_db_btn)
         self.options_layout.addWidget(self.load_db_btn)
 
+        #Font size label and selector
+        self.font_layout = QHBoxLayout()
+        self.font_size_label = QLabel("Set application font size:")
+        self.font_size_selector = QSpinBox()
+        self.font_size_selector.setFixedWidth(60)
+        self.font_size_selector.setRange(6, 48)
+
+        self.font_layout.addWidget(self.font_size_label)
+        self.font_layout.addWidget(self.font_size_selector)
+        self.options_layout.addLayout(self.font_layout)
+        self.font_layout.addStretch()
+
+        # Set default font size to 10
+        self.font_size_selector.setValue(10)
+
         # Keep buttons in place
         self.options_layout.addStretch()
 
@@ -241,6 +256,9 @@ class MainWindow(QMainWindow):
         # Options Save/Load buttons
         self.save_db_btn.clicked.connect(self.save_database)
         self.load_db_btn.clicked.connect(self.load_database)
+
+        # Options font size changer
+        self.font_size_selector.valueChanged.connect(self.set_font_size)
         
     def add_item(self):
 
@@ -419,7 +437,7 @@ class MainWindow(QMainWindow):
             # If filter text is non-empty, skip items that don't match
             if filter_text and filter_text not in i[1].name.lower():
                 continue
-            
+
             # Format item display name
             list_item = QListWidgetItem(f"{i[1].name} (${i[1].sell_value})")
 
@@ -542,6 +560,12 @@ class MainWindow(QMainWindow):
         # Easy button for removing current filter
         self.recipe_filter_item.item_combo.setCurrentIndex(0)
         self.recipe_filter_type.setCurrentIndex(0)
+
+    def set_font_size(self):
+        size = self.font_size_selector.value()
+        font = QApplication.font()
+        font.setPointSize(size)
+        QApplication.setFont(font)
 
     def save_database(self):
 
